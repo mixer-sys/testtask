@@ -26,7 +26,7 @@ Theme_Sources = []
 
 load_dotenv()
 
-username = os.getenv('USERNAME')
+username = os.getenv('MAIL')
 password = os.getenv('PASSWORD')
 
 
