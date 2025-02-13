@@ -1,5 +1,7 @@
 import time
+import os
 
+from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -14,18 +16,22 @@ import xlwings as xw
 
 BOOK_NAME = 'TestTask1.xlsx'
 LIST_NAME = 'Sheet1'
-FILE_PATH = 'C:\\Documents\\Reports\\TestTask2.xlsx'
+FILE_PATH = 'C:\\Dev\\testtask\\TestTask2.xlsx'
 DRIVER_PATH = 'C:\\Windows\\System32\\yandexdriver.exe'
 BROWSER_PATH = ('C:\\Users\\user\\AppData\\Local\\Yandex\\YandexBrowser\\'
                 'Application\\browser.exe')
 LETTER_THEME = 'Список тем для доклада'
-USERNAME = ''
-PASSWORD = ''
-RECEPIENT = ''
+RECEPIENT = 'den.s1m@yandex.ru'
 Theme_Sources = []
 
+load_dotenv()
 
-def send_mail(username, password, recepient, filepath):
+username = os.getenv('USERNAME')
+password = os.getenv('PASSWORD')
+
+
+def send_mail(username=username, password=password,
+              recepient=RECEPIENT, file_path=FILE_PATH):
 
     smtp_server = 'smtp.yandex.com'
     smtp_port = 587
@@ -40,7 +46,7 @@ def send_mail(username, password, recepient, filepath):
     body = LETTER_THEME
     msg.attach(MIMEText(body, 'plain'))
 
-    filename = filepath
+    filename = file_path
     attachment = open(filename, 'rb')
 
     part = MIMEBase('application', 'octet-stream')
@@ -65,7 +71,7 @@ def send_mail(username, password, recepient, filepath):
         attachment.close()
 
 
-def task1(BOOK_NAME, LIST_NAME):
+def task1(book_name=BOOK_NAME, list_name=LIST_NAME):
     """
     В ОС Windows открыт Excel файл "TestTask1.xlsx".
     В файле на листе "Sheet1" есть три столбца - "Task", "Status" и "Comment"
@@ -78,9 +84,9 @@ def task1(BOOK_NAME, LIST_NAME):
     """
     app = xw.apps.active
 
-    workbook = app.books[BOOK_NAME]
+    workbook = app.books[book_name]
 
-    sheet = workbook.sheets[LIST_NAME]
+    sheet = workbook.sheets[list_name]
 
     statuses = sheet.range('B1:B100').value
     for i, status in enumerate(statuses):
@@ -94,7 +100,7 @@ def task1(BOOK_NAME, LIST_NAME):
     workbook.save()
 
 
-def task2():
+def task2(file_path=FILE_PATH, list_name=LIST_NAME):
     """
     1. В ОС Windows есть Excel файл "TestTask2.xlsx" в папке
     "С:\\Documents\\Reports"
@@ -116,12 +122,13 @@ def task2():
     сервис яндекс почты.
     """
 
-    wb = xw.Book(FILE_PATH)
-    ws = wb.sheets[LIST_NAME]
+    wb = xw.Book(file_path)
+    sheet = wb.sheets[list_name]
 
-    themes = ws.range(
-        'A2:A' + str(ws.cells(ws.rows.count, 1).end('up').row)
-        ).value
+    themes = sheet.range('A:A').value
+    themes = [
+        theme for theme in themes if theme is not None and theme != 'Theme'
+    ]
 
     options = Options()
     options.binary_location = BROWSER_PATH
@@ -131,7 +138,7 @@ def task2():
     for theme in themes:
 
         driver.get("https://ya.ru")
-        time.sleep(60)
+        time.sleep(15)
         search_box = driver.find_element(By.NAME, "text")
         search_box.send_keys(theme)
 
@@ -148,16 +155,14 @@ def task2():
         for i, link in enumerate(links[:3], start=1):
             Theme_Sources.append([theme, link.get_attribute('href')])
 
-        ws.range("A2").value = Theme_Sources
-        ws.range("A1").expand().api.AutoFilter(1)
+        sheet.range("A2").value = Theme_Sources
+        sheet.range("A1").expand().api.AutoFilter(1)
         wb.save()
-        wb.close()
 
-    send_mail(USERNAME, PASSWORD, RECEPIENT, FILE_PATH)
-
-
-# Добавление данных в таблицу
+    wb.close()
 
 
 if __name__ == "__main__":
-    ...
+    task1()
+    task2()
+    send_mail()
